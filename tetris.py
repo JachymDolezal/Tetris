@@ -34,6 +34,8 @@ grid_bottom = [
     ['1', '1', '1', '1', '1', '1', '1', '1', '1', '1']
 ]
 
+grid_placed_shapes = [['0' for x in range(GRID_W)] for y in range(GRID_H)]
+
 # add the bottom to the grid
 for row in range(len(grid_bottom)):
     for col in range(len(grid_bottom[0])):
@@ -205,19 +207,47 @@ def on_key_release(event):
     if event.name in key_states:
         key_states[event.name] = False
 
+
+def draw_placed_shapes():
+    # copy grid_placed_shapes to grid
+    for row in range(GRID_H):
+        for col in range(GRID_W):
+            grid[row][col] = grid_placed_shapes[row][col]
+
+
+def add_shape_to_grid(shape, grid_placed_shapes):
+    global score
+    # check for index out of range
+    # subtract 1 from the y coordinate of the shape
+    shape['y'] -= 1
+    for row in range(len(shape['shape'])):
+        for col in range(len(shape['shape'][0])):
+            if shape['shape'][row][col] != '0':
+                # if the row or col are the last row or col of the place it -1
+                grid_placed_shapes[shape['y'] + row][shape['x'] + col] = shape['shape'][row][col]
+    
+    # check for full rows
+
+
 # Register the callback functions for the keys used in the game
 keyboard.on_press(on_key_press)
 keyboard.on_release(on_key_release)
 
 def check_full_rows():
-    global grid
-    for row in range(GRID_H):
-        if '0' not in grid[row]:
+    global grid_placed_shapes
+    points = 0
+    # search the list from the bottom to the top
+    for row in range(GRID_H-1, -1, -1):
+        if '0' not in grid_placed_shapes[row]:
             # print("full row", row)
-            grid.pop(row)
-            grid.insert(0, ['0' for x in range(GRID_W)])
+            grid_placed_shapes.pop(row)
+            grid_placed_shapes.insert(0, ['0' for x in range(GRID_W)])
+            points += 10
             # clear_the_grid()
             # draw_grid()
+    # add multiplier for each row
+    points = points * points
+    return points
 
 place_shape(shapes_on_grid["current"]['shape'], 0, 0)
 
@@ -236,8 +266,10 @@ def main_game_loop():
 
         # Game logic and screen update code here
         # place all placed shapes
-        for placed_shape in shapes_on_grid["placed"]:
-            place_shape(placed_shape['shape'], placed_shape['x'], placed_shape['y'])
+        # for placed_shape in shapes_on_grid["placed"]:
+        #     place_shape(placed_shape['shape'], placed_shape['x'], placed_shape['y'])
+
+        draw_placed_shapes()
 
         # check if the current shape is colliding with any of the placed shapes
         top_level_coords=get_top_level(grid)
@@ -246,21 +278,28 @@ def main_game_loop():
             break
         if check_collision(shapes_on_grid["current"],top_level_coords):
             print("Collision detected")
-            shapes_on_grid["placed"].append({'shape': shapes_on_grid["current"]['shape'], 'x': shapes_on_grid["current"]['x'], 'y': shapes_on_grid["current"]['y']-1})
+            # shapes_on_grid["placed"].append({'shape': shapes_on_grid["current"]['shape'], 'x': shapes_on_grid["current"]['x'], 'y': shapes_on_grid["current"]['y']-1})
+            add_shape_to_grid(shapes_on_grid["current"], grid_placed_shapes)
             shapes_on_grid["current"] = {'shape': shapes_on_grid["next"]["shape"], 'x': 0, 'y': 0}
             placed = True
-            score += 10
+            points = check_full_rows()
+
+            score += points
             # place the current shape to placed shapes and reset the current shape
         else:
             place_shape(shapes_on_grid['current']['shape'], shapes_on_grid['current']['x'], shapes_on_grid['current']['y'])
 
         delta += 1
-        if delta == 25 and placed == False:
+        if delta == 20 and placed == False:
             # clear_the_grid()
             shapes_on_grid["current"]['y'] += 1
             delta = 0
-        # time.sleep(0.001)
+        # time.sleep(0.00001)
         draw_grid()
+
+        # print the grid placed shapes
+        for row in grid_placed_shapes:
+            print(row)
 
         time.sleep(0.00001)
         # clear screen
@@ -288,21 +327,21 @@ main_game_loop()
 
 print("Game over.")
 
-"""
-TODO:
-- [x] add rotation to L shape
-- [x] add collision for below cells
-- [x] add collision for sides of the scren
-- [x] create UI for the game
-- [x] implement placing of the shapes
-- [ ] Make the game mechanics work for all shapes
-- [ ] Rework how the placed shapes are stored
-- [ ] implement line clearing and scoring
-- [ ] implement game over screen
-- [ ] fix next shapes
-- [ ] add randomized shapes to the game based on the nintendo tetris
-- [ ] fix collision detection from the sides
-- [ ] refactor the whole game
-- [ ] refactor the display of the game
-- [ ] optimize the game and reduce the screen flickering
-"""
+# """
+# TODO:
+# - [x] add rotation to L shape
+# - [x] add collision for below cells
+# - [x] add collision for sides of the scren
+# - [x] create UI for the game
+# - [x] implement placing of the shapes
+# - [ ] Make the game mechanics work for all shapes
+# - [x] Rework how the placed shapes are stored
+# - [x] implement line clearing and scoring
+# - [ ] implement game over screen
+# - [ ] fix next shapes
+# - [ ] add randomized shapes to the game based on the nintendo tetris
+# - [ ] fix collision detection from the sides
+# - [ ] refactor the whole game
+# - [ ] refactor the display of the game
+# - [ ] optimize the game and reduce the screen flickering
+# """
