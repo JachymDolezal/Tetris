@@ -2,6 +2,10 @@ import time
 import keyboard
 from colorama import Fore, Back, Style
 from shapes import j_shape, i_shape, o_shape, s_shape, t_shape, z_shape, l_shape
+import os
+import curses
+
+
 
 global x, y, delta, rotation, shape, grid
 
@@ -14,6 +18,8 @@ score = 0
 shapes_on_grid = {"current": {}, "next": {}, "hold": {}, "placed": []}
 
 list_of_randomized_shapes = []
+
+clear = ("cls" if os.name == "nt" else "clear")
 
 GRID_W = 10
 GRID_H = 20
@@ -79,28 +85,36 @@ def place_shape(shape, x, y):
 #         print("|"+''.join(row)+"|")
 
 
-def draw_grid():
+def draw_grid(stdscr):
+    stdscr.clear()
     print("--")
-    print("next shape")
-    for row in shapes_on_grid["next"]["shape"]:
-        for cell in row:
-            if cell == "0":
-                print(Fore.BLACK + Back.WHITE + " " + Style.RESET_ALL, end="")
-            if cell == "1":
-                print(Fore.BLACK + Back.GREEN + " " + Style.RESET_ALL, end="")
-        print()
-    print("+----------+")
-    for row in grid:
-        print("|", end="")
-        for cell in row:
-            if cell == "0":
-                print(Fore.BLACK + Back.WHITE + " " + Style.RESET_ALL, end="")
-            if cell == "1":
-                print(Fore.BLACK + Back.GREEN + " " + Style.RESET_ALL, end="")
-        print("|", end="")
-        print()
-    print("+---------+")
-    print("Score:", score)
+    # print("next shape")
+    # for row in shapes_on_grid["next"]["shape"]:
+    #     for cell in row:
+    #         if cell == "0":
+    #             print(Fore.BLACK + Back.WHITE + " " + Style.RESET_ALL, end="")
+    #         if cell == "1":
+    #             print(Fore.BLACK + Back.GREEN + " " + Style.RESET_ALL, end="")
+    #     print()
+    # print("+----------+")
+    # for row in grid:
+    #     print("|", end="")
+    #     for cell in row:
+    #         if cell == "0":
+    #             print(Fore.BLACK + Back.WHITE + " " + Style.RESET_ALL, end="")
+    #         if cell == "1":
+    #             print(Fore.BLACK + Back.GREEN + " " + Style.RESET_ALL, end="")
+    #     print("|", end="")
+    #     print()
+    # print("+---------+")
+    # print("Score:", score)
+    for y, row in enumerate(grid):
+        for x, val in enumerate(row):
+            if val == "0":
+                stdscr.addstr(y, x, " ", curses.color_pair(1))
+            if val == "1":
+                stdscr.addstr(y, x, " ", curses.color_pair(2))
+    stdscr.refresh()
 
 
 def rotate_shape(shape, rotation, data):
@@ -300,8 +314,18 @@ place_shape(shapes_on_grid["current"]["shape"], 0, 0)
 placed = False
 
 
+
+
 # Main game loop
-def main_game_loop():
+def main_game_loop(stdscr):
+    curses.curs_set(0)  # Hide the cursor
+    stdscr.nodelay(1)   # Don't block waiting for user input
+    stdscr.timeout(100) # Refresh every 100ms
+
+    # Initialize colors
+    curses.start_color()
+    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)  # White on black
+    curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_BLACK)  # Black on white
     global x, y, delta, rotation, shape, grid, placed, score
     print("Game started. Press ESC to stop.")
     while True:
@@ -342,14 +366,20 @@ def main_game_loop():
             )
 
         delta += 1
-        if delta == 20 and not placed:
+        if delta == 2:
             # clear_the_grid()
             shapes_on_grid["current"]["y"] += 1
             delta = 0
-        draw_grid()
-        time.sleep(0.00001)
+        # time.sleep(0.0001)
+        draw_grid(stdscr=stdscr)
+        
         # clear screen
-        print("\033[H\033[J")
+        # print("\033[H\033[J")
+        # clear
+        time.sleep(0.1)
+        # os.system(clear)
+        # print(chr(27) + "[2J")
+        # time.sleep(0.0001)
         if placed:
             check_full_rows()
             placed = False
@@ -360,6 +390,8 @@ def main_game_loop():
 
 
 # Run the main game loop
-main_game_loop()
+# main_game_loop()
+
+curses.wrapper(main_game_loop)
 
 print("Game over.")
