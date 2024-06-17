@@ -8,7 +8,7 @@ import curses
 
 
 global x, y, delta, rotation, shape, grid
-
+timer_per_fall = 8
 fall_timer = 1
 x = 0
 y = 0
@@ -85,7 +85,7 @@ def place_shape(shape, x, y):
 #         print("|"+''.join(row)+"|")
 
 
-def draw_grid(stdscr):
+def draw_grid(stdscr, score):
     stdscr.clear()
     print("--")
     # print("next shape")
@@ -108,28 +108,46 @@ def draw_grid(stdscr):
     #     print()
     # print("+---------+")
     # print("Score:", score)
+    # print next shape
+    stdscr.addstr(0, 15, "Next shape", curses.color_pair(1))
+    for y, row in enumerate(shapes_on_grid["next"]["shape"]):
+        for x, val in enumerate(row):
+            if val == "0":
+                stdscr.addstr(y+2, x + 15, ".", curses.color_pair(1))
+            if val == "1":
+                stdscr.addstr(y+2, x + 15, " ", curses.color_pair(2))
+
+    # print rotation indicator
+    stdscr.addstr(5, 15, "Rotation: " + str(shapes_on_grid["current"]["rotation"]), curses.color_pair(1))
+
+    # print score
+    stdscr.addstr(19, 15, "Score: " + str(score), curses.color_pair(1))
+    # print boarder top
+    for x in range(0, 9):
+        stdscr.addstr(0, x, "-", curses.color_pair(1))
     for y, row in enumerate(grid):
         for x, val in enumerate(row):
             if val == "0":
-                stdscr.addstr(y, x, " ", curses.color_pair(1))
+                stdscr.addstr(y, x, ".", curses.color_pair(1))
             if val == "1":
                 stdscr.addstr(y, x, " ", curses.color_pair(2))
     stdscr.refresh()
 
 
 def rotate_shape(shape, rotation, data):
-    global l_rotated, l_rotated_2, l_rotated_3, l_shape
-    # print("rotating", shape, rotation)
+    print("rotating", shape, rotation)
     # get number of keys in the data dictionary
     keys = len(data.keys())
     rotation = (rotation + 1) % keys
     shape = data[list(data.keys())[rotation]]
 
+    print("rotating", shape, rotation)
+
     return shape, rotation
 
 
 # Dictionary to track currently pressed keys and their state
-key_states = {"left": False, "right": False, "up": False, "down": False}
+key_states = {"left": False, "right": False, "c": False, "down": False}
 
 
 def clear_the_grid():
@@ -154,8 +172,9 @@ def move_right():
 def rotate():
     global shape, rotation
     shapes_on_grid["current"]["shape"], rotation = rotate_shape(
-        shapes_on_grid["current"]["shape"], rotation, shapes_on_grid["current"]["data"]
+        shapes_on_grid["current"]["shape"], shapes_on_grid["current"]["rotation"], shapes_on_grid["current"]["data"]
     )
+    shapes_on_grid["current"]["rotation"] = rotation
 
 
 def drop():
@@ -227,7 +246,7 @@ def on_key_press(event):
             move_left()
         elif event.name == "right":
             move_right()
-        elif event.name == "up":
+        elif event.name == "c":
             rotate()
         elif event.name == "down":
             drop()
@@ -318,15 +337,17 @@ placed = False
 
 # Main game loop
 def main_game_loop(stdscr):
+    global x, y, delta, rotation, shape, grid, placed, score, timer_per_fall
     curses.curs_set(0)  # Hide the cursor
     stdscr.nodelay(1)   # Don't block waiting for user input
     stdscr.timeout(100) # Refresh every 100ms
 
+    repetitions = 0
+
     # Initialize colors
     curses.start_color()
-    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)  # White on black
-    curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_BLACK)  # Black on white
-    global x, y, delta, rotation, shape, grid, placed, score
+    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)  # White on black
+    curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_RED)  # Black on white
     print("Game started. Press ESC to stop.")
     while True:
         clear_the_grid()
@@ -336,7 +357,6 @@ def main_game_loop(stdscr):
                 key_states[key] = False
 
         draw_placed_shapes()
-
         # check if the current shape is colliding with any of the placed shapes
         top_level_coords = get_top_level(grid)
         if top_level_coords is None:
@@ -353,6 +373,7 @@ def main_game_loop(stdscr):
                 "rotation": 0,
                 "data": shapes_on_grid["next"]["data"],
             }
+            print("current shape", shapes_on_grid["current"]["rotation"])
             placed = True
             points = check_full_rows()
 
@@ -366,17 +387,23 @@ def main_game_loop(stdscr):
             )
 
         delta += 1
-        if delta == 2:
+        if delta == timer_per_fall:
             # clear_the_grid()
             shapes_on_grid["current"]["y"] += 1
             delta = 0
+            repetitions += 1
         # time.sleep(0.0001)
-        draw_grid(stdscr=stdscr)
-        
+        if repetitions == 50:
+            repetitions = 0
+            timer_per_fall -= 1
+            if timer_per_fall < 8:
+                timer_per_fall = 8
+            print("speeding up", timer_per_fall)
+        draw_grid(stdscr=stdscr, score=score)
         # clear screen
         # print("\033[H\033[J")
         # clear
-        time.sleep(0.1)
+        time.sleep(0.001)
         # os.system(clear)
         # print(chr(27) + "[2J")
         # time.sleep(0.0001)
