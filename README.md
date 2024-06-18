@@ -11,7 +11,7 @@ CLI tetris created in python.
 - [x] Make the game mechanics work for all shapes
 - [x] Rework how the placed shapes are stored
 - [x] implement line clearing and scoring
-- [ ] implement game over screen
+- [x] implement game over screen
 - [x] fix next shapes
 - [x] add randomized shapes to the game based on the nintendo tetris
 - [ ] fix collision detection from the sides

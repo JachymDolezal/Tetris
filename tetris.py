@@ -333,6 +333,35 @@ place_shape(shapes_on_grid["current"]["shape"], 0, 0)
 placed = False
 
 
+# game over text
+game_over_text = """
+_______                            _______                          
+|  __  \                          /   __  \                         
+| |  |_|   ___    _  _  _  ______ |  |  | |__     __ ______  _   _  
+| | ___   / _ \  / |/ |/ ||/ __\ \|  |  | |\ \   / /|/ __\ \| | / _|
+| |__| | / __\ \ | |  |  ||| |-|_||  |__| | \ \_/ / || |-|_|| |/ /  
+|______|/ /   \_\|_| _| _||_|\___|\_______|  \___/  |_|\___||___/   
+"""
+def game_over(stdscr):
+    stdscr.clear()
+    stdscr.addstr(0, 0, game_over_text, curses.color_pair(3))
+
+    # score text
+    stdscr.addstr(8, 0, "Score: " + str(score), curses.color_pair(3))
+
+    # high score text
+    stdscr.addstr(10, 0, "High Score: 0", curses.color_pair(3))
+
+    stdscr.addstr(12, 0, "Press esc key to exit", curses.color_pair(3))
+
+    while True:
+        stdscr.refresh()
+        curses.endwin()
+        # if any key is pressed exit the game
+        if keyboard.is_pressed(hotkey="esc"):
+            break
+    exit()
+
 
 
 # Main game loop
@@ -347,7 +376,8 @@ def main_game_loop(stdscr):
     # Initialize colors
     curses.start_color()
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)  # White on black
-    curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_RED)  # Black on white
+    curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_GREEN)  # Black on white
+    curses.init_pair(3, curses.COLOR_GREEN, curses.COLOR_BLACK)  # Black on red
     print("Game started. Press ESC to stop.")
     while True:
         clear_the_grid()
@@ -360,8 +390,8 @@ def main_game_loop(stdscr):
         # check if the current shape is colliding with any of the placed shapes
         top_level_coords = get_top_level(grid)
         if top_level_coords is None:
-            print("game over")
-            break
+            # game over
+            game_over(stdscr=stdscr)
         if check_collision(shapes_on_grid["current"], top_level_coords):
             print("Collision detected")
             add_shape_to_grid(shapes_on_grid["current"], grid_placed_shapes)
